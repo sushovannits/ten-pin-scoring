@@ -42,5 +42,31 @@
                 (+ sum (nth scores 2 0))  ; spare
                 sum ; open
 )))))
+(defrecord Turn [first-pins second-pins curr-turn-score score])
+(defn construct-turns
+  "
+    Given a set of scores and a cumulative score recursively construct a list of turns
+    Each turn will contain first-pins second-pins score
+    score is the cumulative score TODO: May be we need individual score of the turn
+    
+    Note: Here we are not taking into consideration the special case of strike in the last turn or spare in last turn
+          so tha this function is recursive and do not have to take into consideration its index
+    Logic:
+      if strike take the first score -> construct the frame -> construct-turns rest of list (i.e. minus first score)
+      else take the first two score -> construct the frame -> construct-turns of list(i.e. minus first two score)
+  "
+  [prev-score scores]
+  (if (empty? scores)
+    () ;limit case
+    (let [first-score (first scores)
+          first-turn-score (turn-score scores)
+          cumul-score (+ prev-score first-turn-score)]
+      (if (= first-score 10)
+        (cons (Turn. first-score nil first-turn-score cumul-score) ; current-turn
+              (construct-turns cumul-score (next scores))) ; rest-of-the-turns
+        (cons (Turn. first-score (nth scores 1 nil) first-turn-score cumul-score)
+              (construct-turns cumul-score (nthnext scores 2)))))))
 
+(construct-turns 0 [0 1 2 3])
+(construct-turns 0 [10 10 2 1])
 (defn -main [& args] (println "test init"))
