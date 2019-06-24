@@ -71,7 +71,10 @@
         (cons (Turn. first-score (nth scores 1 nil) first-turn-score cumul-score first-turn-type)
               (construct-turns cumul-score (nthnext scores 2)))))))
 
-(defn- find-scores
+(defn- pad [n coll val]
+  (take n (concat coll (repeat val))))
+
+(defn find-scores
   "
   This function basically takes extra turns and consolidates into the last frame
   So if we get a last frame as [10 nil] and then 3 other turns as [10 nil] [10 nil] [3 nil]
@@ -79,7 +82,7 @@
   This function finds this valid list of pin numbers to construct the last frame in case of 
   "
   [turns]
-  (first (partition 3 3 (repeat nil) (remove nil? (mapcat (fn [turn] (vals (select-keys turn [:first-pins :second-pins]))) turns)))))
+  (pad 3 (remove nil? (mapcat (fn [turn] (vals (select-keys turn [:first-pins :second-pins]))) turns)) nil))
 
 ; (find-scores [{:f 1 :s nil} {:f 2 :s nil} {:f 3 :s 7}])
 
@@ -95,7 +98,7 @@
 
 ; (strike-or-spare? {:first-pins 2 :second-pins 2})
 
-(defn- resolve-extra-turns
+(defn resolve-extra-turns
   "
     Incase of an extra turn i.e. when players get extra chance due to a last strike or last spare
     the construct-frame generates an extra turn. This function consolidates it to the last turn 
@@ -113,7 +116,7 @@
         (concat (take 9 turns) [last-turn]))
       (take 10 turns))
     turns))
-(resolve-extra-turns (repeat 10 {:first-pins 1 :second-pins 2}))
+; (resolve-extra-turns (repeat 10 {:first-pins 1 :second-pins 2}))
 
 (defn over?
   "
@@ -135,7 +138,7 @@
           is-spare (every? (comp not nil?) [f s t])
           :else (every? (comp not nil?) [f s]))))))
 
-(defn- compute-score-card
+(defn compute-score-card
   "
     Constructs the score card for a given list of scores
   "
@@ -152,7 +155,7 @@
 
 (compute-score-card [1 9 2 4 10 10 10 7 1 2 8 7 0 0 0 10 1 9]) ; should be 145
 (compute-score-card (concat (repeat 9 10) (flatten (repeat 4 [1 2])))) ; should be 247 
-(compute-score-card (concat (repeat 9 10) [1 2])) ; should be 247 
+(compute-score-card (concat (repeat 9 10) [1])) ; should be 247 
 (compute-score-card (repeat 12 10)) ; 300 
 (compute-score-card (concat  (repeat 10 10) [1 2 3 4])) ; 274
 (defn -main [& args] (println "test init"))
