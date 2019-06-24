@@ -153,9 +153,9 @@
       [score-card, nil])
     [nil, "Error"]))
 
-(compute-score-card [1 9 2 4 10 10 10 7 1 2 8 7 0 0 0 10 1 9]) ; should be 145
-(compute-score-card (concat (repeat 9 10) (flatten (repeat 4 [1 2])))) ; should be 247 
-(compute-score-card (concat (repeat 9 10) [1])) ; should be 247 
-(compute-score-card (repeat 12 10)) ; 300 
-(compute-score-card (concat  (repeat 10 10) [1 2 3 4])) ; 274
+; (compute-score-card [1 9 2 4 10 10 10 7 1 2 8 7 0 0 0 10 1 9]) ; should be 145
+; (compute-score-card (concat (repeat 9 10) (flatten (repeat 4 [1 2])))) ; should be 247 
+; (compute-score-card (concat (repeat 9 10) [1])) ; should be 247 
+; (compute-score-card (repeat 12 10)) ; 300 
+; (compute-score-card (concat  (repeat 10 10) [1 2 3 4])) ; 274
 (defn -main [& args] (println "test init"))
