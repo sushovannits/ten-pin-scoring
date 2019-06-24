@@ -43,9 +43,10 @@
               (if (= sum 10)
                 [:spare (+ sum (nth scores 2 0))]  ; spare
                 [:open sum] ; open
-)))))
+                )))))
 
 (defrecord Turn [first-pins second-pins curr-turn-score score turn-type])
+
 (defn construct-turns
   "
     Given a set of scores and a cumulative score recursively construct a list of turns
@@ -70,6 +71,30 @@
         (cons (Turn. first-score (nth scores 1 nil) first-turn-score cumul-score first-turn-type)
               (construct-turns cumul-score (nthnext scores 2)))))))
 
+(defn- find-scores
+  "
+  This function basically takes extra turns and consolidates into the last frame
+  So if we get a last frame as [10 nil] and then 3 other turns as [10 nil] [10 nil] [3 nil]
+  Then [3 nil] frame must be discarded and the actual last frame should be [10 10 10]
+  This function finds this valid list of pin numbers to construct the last frame in case of 
+  "
+  [turns]
+  (first (partition 3 3 (repeat nil) (remove nil? (mapcat (fn [turn] (vals (select-keys turn [:first-pins :second-pins]))) turns)))))
+
+; (find-scores [{:f 1 :s nil} {:f 2 :s nil} {:f 3 :s 7}])
+
+(defn- strike-or-spare?
+  "finds if a trun is strike or spare"
+  [{:keys [first-pins second-pins]}]
+  (let
+   [f (or first-pins 0)
+    s (or second-pins 0)]
+    (or
+     (= f 10)
+     (= (+ f s) 10))))
+
+; (strike-or-spare? {:first-pins 2 :second-pins 2})
+
 (defn- resolve-extra-turns
   "
     Incase of an extra turn i.e. when players get extra chance due to a last strike or last spare
@@ -77,32 +102,30 @@
     with an extra key of :third-pins
   "
   [turns]
-  (if (= (count turns) 11)
-    (let [extra-turn (last turns)
-          extra-turn-first (:first-pins extra-turn)
-          extra-turn-second (:second-pins extra-turn)
-          actual-last-turn (last (drop-last 1 turns))
-          actual-last-turn-second (:second-pins actual-last-turn)
-          last-trun (cond
-                      (nil? actual-last-turn-second) (assoc-in
-                                                      (assoc-in actual-last-turn [:second-pins] extra-turn-first)
-                                                      [:third-pins] extra-turn-second) ; strike
-                      :else ; spare
-                      (assoc-in actual-last-turn [:third-pins] extra-turn-first))]
-      (concat (drop-last 2 turns) [last-trun]))
+  (if (>= (count turns) 11) ; extra scores are present
+    (if (strike-or-spare? (nth turns 9))
+      (let [[extra-turn-first extra-turn-second extra-turn-third] (find-scores (nthnext turns 9))
+            actual-last-turn (nth turns 9)
+            last-turn (-> actual-last-turn
+                          (assoc-in [:first-pins] extra-turn-first)
+                          (assoc-in [:second-pins] extra-turn-second)
+                          (assoc-in [:third-pins] extra-turn-third))]
+        (concat (take 9 turns) [last-turn]))
+      (take 10 turns))
     turns))
+(resolve-extra-turns (repeat 10 {:first-pins 1 :second-pins 2}))
 
 (defn over?
   "
     Count of frame if less than 10 then definitely game is not over
     If 10 then we need to find out if the 2 scores or 3 scores(in case of spare or strike) is not nil
   "
-  [frames]
-  (let [c (count frames)]
+  [turns]
+  (let [c (count turns)]
     (cond
       (< c 10) false
       :else
-      (let [tail (nthnext frames 9)
+      (let [tail (nthnext turns 9)
             tenth-frame (first tail)
             {f :first-pins s :second-pins t :third-pins} tenth-frame
             is-strike (= f 10)
@@ -110,7 +133,7 @@
         (cond
           is-strike (every? (comp not nil?) [f s t])
           is-spare (every? (comp not nil?) [f s t])
-          :else false)))))
+          :else (every? (comp not nil?) [f s]))))))
 
 (defn- compute-score-card
   "
@@ -127,5 +150,9 @@
       score-card)
     [nil, "Error"]))
 
-(compute-score-card [1 9 2 4 10 10 10 7 1 2 8 7 0 0 0 10 1 9])
+(compute-score-card [1 9 2 4 10 10 10 7 1 2 8 7 0 0 0 10 1 9]) ; should be 145
+(compute-score-card (concat (repeat 9 10) (flatten (repeat 4 [1 2])))) ; should be 247 
+(compute-score-card (concat (repeat 9 10) [1 2])) ; should be 247 
+(compute-score-card (repeat 12 10)) ; 300 
+(compute-score-card (concat  (repeat 10 10) [1 2 3 4])) ; 274
 (defn -main [& args] (println "test init"))
