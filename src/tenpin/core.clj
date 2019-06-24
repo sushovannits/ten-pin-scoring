@@ -150,7 +150,7 @@
                                 (= (count scores) 0) :not-started
                                 (over? turns) :over
                                 :else :on-going)}]
-      score-card)
+      [score-card, nil])
     [nil, "Error"]))
 
 (compute-score-card [1 9 2 4 10 10 10 7 1 2 8 7 0 0 0 10 1 9]) ; should be 145
