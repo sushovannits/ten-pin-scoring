@@ -3,21 +3,31 @@
             [tenpin.core :refer :all])
   (:import [tenpin.core Turn]))
 
-(deftest test-is-valid?
+(deftest test-valid?
   (testing "empty scores"
-    (is (true? (is-valid? ()))))
+    (is (true? (valid? ()))))
   (testing "one score"
-    (is (true? (is-valid? '(1)))))
+    (is (true? (valid? '(1)))))
   (testing "invalid score"
-    (is (false? (is-valid? '(11)))))
+    (is (false? (valid? '(11)))))
   (testing "with two valid"
-    (is (true? (is-valid? '(1 2)))))
+    (is (true? (valid? '(1 2)))))
   (testing "with two invalid"
-    (is (false? (is-valid? '(4 8)))))
+    (is (false? (valid? '(4 8)))))
   (testing "a strike score"
-    (is (true? (is-valid? '(10 8)))))
+    (is (true? (valid? '(10 8)))))
   (testing "with too many rolls"
-    (is (false? (is-valid? (repeat 22 3))))))
+    (is (false? (valid? (repeat 22 3)))))
+  (testing "with no extra roll when last is a strike"
+    (is (true? (valid? (concat (repeat 9 10) [10 10 9])))))
+  (testing "with one extra roll when last is a strike"
+    (is (false? (valid? (concat (repeat 9 10) [10 10 9 1])))))
+  (testing "with no extra roll when last is a spare"
+    (is (true? (valid? (concat (repeat 9 10) [8 2 9])))))
+  (testing "with one extra roll when last is a spare"
+    (is (false? (valid? (concat (repeat 9 10) [8 2 9 1])))))
+  (testing "A normal valid score"
+    (is (true? (valid? [1 9 2 4 10 10 10 7 1 2 8 7 0 0 0 10 1 9])))))
 
 (deftest test-turn-score
   (testing "empty scores"
@@ -90,36 +100,41 @@
     (is (=  (into {} (last (resolve-extra-turns extra-tail)))
             {:first-pins 1 :second-pins 2 :curr-turn-score 0 :score 0 :turn-type :open}))))
 
+(defn compute-score-test
+  [scores]
+  (let [[result error] (compute-score-card scores)]
+    result))
+
 (deftest test-compute-score-card
   (testing "empty scores"
-    (is (=  (:turns (compute-score-card []))
+    (is (=  (:turns (compute-score-test []))
             ()))
-    (is (= (:status (compute-score-card []))
+    (is (= (:status (compute-score-test []))
            :not-started)))
   (testing "one turn played"
-    (is (=  (:score (last (:turns (compute-score-card [1 2]))))
+    (is (=  (:score (last (:turns (compute-score-test [1 2]))))
             3))
-    (is (= (:status (compute-score-card [1 2]))
+    (is (= (:status (compute-score-test [1 2]))
            :on-going)))
   (testing "two turn played"
-    (is (=  (:score (last (:turns (compute-score-card [1 2 3 4]))))
+    (is (=  (:score (last (:turns (compute-score-test [1 2 3 4]))))
             10)))
   (testing "all turn played with all strikes"
-    (is (=  (:score (last (:turns (compute-score-card (repeat 12 10)))))
+    (is (=  (:score (last (:turns (compute-score-test (repeat 12 10)))))
             300))
-    (is (= (:status (compute-score-card (repeat 12 10)))
+    (is (= (:status (compute-score-test (repeat 12 10)))
            :over)))
   (testing "all turn played with all strikes and a open in end"
-    (is (=  (:score (last (:turns (compute-score-card (concat (repeat 10 10) [1 2])))))
+    (is (=  (:score (last (:turns (compute-score-test (concat (repeat 10 10) [1 2])))))
             274))
-    (is (= (:status (compute-score-card (concat (repeat 10 10) [1 2])))
+    (is (= (:status (compute-score-test (concat (repeat 10 10) [1 2])))
            :over))
-    (is (= (:status (compute-score-card (concat (repeat 10 10) [1])))
+    (is (= (:status (compute-score-test (concat (repeat 10 10) [1])))
            :on-going)))
   (testing "all turn played with all spares and last strike"
-    (is (=  (:score (last (:turns (compute-score-card (concat (flatten (repeat 10 [8 2])) [10])))))
+    (is (=  (:score (last (:turns (compute-score-test (concat (flatten (repeat 10 [8 2])) [10])))))
             182))
-    (is (= (:status (compute-score-card (concat (flatten (repeat 10 [8 2])) [10])))
+    (is (= (:status (compute-score-test (concat (flatten (repeat 10 [8 2])) [10])))
            :over))
-    (is (= (:status (compute-score-card (flatten (repeat 10 [8 2])))) ; when incomplete
+    (is (= (:status (compute-score-test (flatten (repeat 10 [8 2])))) ; when incomplete
            :on-going))))

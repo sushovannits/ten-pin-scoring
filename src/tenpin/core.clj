@@ -6,24 +6,57 @@
   (and (>= score 0)
        (<= score 10)))
 
+(defn- find-type
+  ([_f]
+   (find-type _f nil))
+  ([_f _s]
+   (let [f (or _f 0)
+         s (or _s 0)]
+     (cond
+       (= f 10) :strike
+       (= (+ f s) 10) :spare
+       :else :open))))
+
+(find-type 8 2)
+
 (defn is-valid?
+
   " Given a list of scores validates the list
     - check the toal length 21
     - if strike then check only one score 
     - if spare/open then check two scores
     - recursively check the rest of the list  
+    TODO: Too elaborate in the logic section, have to refactor
   "
-  [scores]
-  (let [total-scores (count scores)]
+  [scores turn-count prev-turn]
+  (let [; _ (println turn-count)
+        ; _ (println prev-turn)
+        ; _ (println (first scores))
+        ; _ (println "------------")
+        total-scores (count scores)]
     (cond
       (> total-scores 21) false
       (= total-scores 0) true
+      (and (= turn-count 12) (not (= prev-turn :strike)))  false
+      (and (= turn-count 11) (= prev-turn :spare) (> total-scores 1)) false
+      (and (= turn-count 11) (= prev-turn :strike) (> total-scores 2)) false
+      (and (= turn-count 11) (not (or (= prev-turn :strike) (= prev-turn :spare)))) false
       (= total-scores 1) (valid-score? (first scores))
-      (= (first scores) 10) (is-valid? (next scores))
+      (= (first scores) 10) (is-valid? (next scores) (inc turn-count) (find-type (first scores)))
       (let [[f s] (take 2 scores)]
         (and (valid-score? f) (valid-score? s) (valid-score? (+ f s))))
-      (is-valid? (nthnext scores 2))
+      (let [[f s] (take 2 scores)]
+        (is-valid? (nthnext scores 2) (inc turn-count) (find-type f s)))
       :else false)))
+
+; (is-valid? (concat (repeat 9 10) [10 10 9]) 1 nil)
+; (is-valid? (concat (repeat 9 10) [8 2 9 1]) 1 nil)
+; (is-valid? '(2 9) 1 nil)
+; (is-valid? [1 9 2 4 10 10 10 7 1 2 8 7 0 0 0 10 1 9] 1 nil)
+
+(defn valid?
+  [scores]
+  (is-valid? scores 1 nil))
 
 (defn turn-score
   " Given a list of valid scores calculate the score of the first turn
@@ -143,7 +176,7 @@
     Constructs the score card for a given list of scores
   "
   [scores]
-  (if (is-valid? scores)
+  (if (valid? scores)
     (let [turns (resolve-extra-turns (construct-turns 0 scores))
           score-card {:turns  turns
                       :status (cond
@@ -151,7 +184,7 @@
                                 (over? turns) :over
                                 :else :on-going)}]
       [score-card, nil])
-    [nil, "Error"]))
+    [nil, "Not a valid input"])) ; TODO: May be implement precise error reporting as to why it is invalid
 
 ; (compute-score-card [1 9 2 4 10 10 10 7 1 2 8 7 0 0 0 10 1 9]) ; should be 145
 ; (compute-score-card (concat (repeat 9 10) (flatten (repeat 4 [1 2])))) ; should be 247 
